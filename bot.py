@@ -26,7 +26,7 @@ CHANNELS = ["dark1544", "+lRKxuCwsiJ02N2Fl"]
 
 broadcast_mode = {}
 
-# 🔹 Check join
+# 🔹 Check both channels
 async def is_joined(user_id, context):
     try:
         for ch in CHANNELS:
@@ -43,15 +43,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ref = context.args[0] if context.args else None
 
     if user_id not in users:
-        users[user_id] = {"referrals": 0}
+        users[user_id] = {"referrals": 0, "joined_users": []}
 
     joined = await is_joined(user_id, context)
 
     # 🔥 AUTO REFERRAL
     if joined and ref and ref != user_id and ref in users:
-        if "joined_users" not in users[ref]:
-            users[ref]["joined_users"] = []
-
         if user_id not in users[ref]["joined_users"]:
             users[ref]["referrals"] += 1
             users[ref]["joined_users"].append(user_id)
@@ -73,13 +70,13 @@ https://t.me/+f7oWI21E_JgzMzQ1
                 except:
                     pass
 
-    # 🔥 Invite text
+    # 🔥 Invite message
     invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
 
-1️⃣ Bot Start:
+👉 Bot Start:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
-2️⃣ दोनों channel join करो:
+👉 दोनों channel join करो:
 https://t.me/dark1544
 https://t.me/+lRKxuCwsiJ02N2Fl
 """
@@ -91,6 +88,7 @@ https://t.me/+lRKxuCwsiJ02N2Fl
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
 
+    # ❌ Join नहीं किया
     if not joined:
         await update.message.reply_text(
             "👉 पहले दोनों channel join करो",
@@ -98,11 +96,9 @@ https://t.me/+lRKxuCwsiJ02N2Fl
         )
         return
 
-    save_data(users)
-
     count = users[user_id]["referrals"]
 
-    # ✅ SAME OLD MESSAGE (आपका वाला)
+    # ✅ EXACT YOUR MESSAGE
     if count >= 10:
         text = """🎉 Congratulations!
 
@@ -124,7 +120,7 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# 🔹 Progress
+# 🔹 Progress button
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -139,7 +135,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
-        msg = f"""📊 Progress: {count}/10"""
+        msg = f"📊 Progress: {count}/10"
 
     await query.edit_message_text(msg)
 
