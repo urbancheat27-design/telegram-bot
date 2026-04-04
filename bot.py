@@ -1,9 +1,12 @@
 import json
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
 TOKEN = os.getenv("TOKEN")
+
+# ✅ MULTI ADMIN
+ADMIN_IDS = ["5747624055", "1507609664"]
 
 DATA_FILE = "data.json"
 
@@ -20,6 +23,19 @@ def save_data(data):
 
 users = load_data()
 
+CHANNEL_USERNAME = "dark1544"
+
+broadcast_mode = {}
+
+# 🔹 Check join
+async def is_joined(user_id, context):
+    try:
+        member = await context.bot.get_chat_member(f"@{CHANNEL_USERNAME}", user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except:
+        return False
+
+# 🔹 Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
@@ -30,20 +46,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in users:
         users[user_id] = {"referrals": 0}
 
-        if ref and ref != user_id and ref in users:
-            users[ref]["referrals"] += 1
+    joined = await is_joined(user_id, context)
+
+    keyboard = [
+        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/dark1544")],
+        [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?url=https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}")],
+        [InlineKeyboardButton("✅ Check Join", callback_data=f"checkjoin_{ref}")],
+        [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if not joined:
+        await update.message.reply_text("⚠️ पहले channel join करो", reply_markup=reply_markup)
+        return
+
+    if ref and ref != user_id and ref in users:
+        users[ref]["referrals"] += 1
 
     save_data(users)
 
     count = users[user_id]["referrals"]
-
-    # 🔘 Buttons
-    keyboard = [
-        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/dark1544")],
-        [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?url=https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}")],
-        [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
     if count >= 10:
         text = """🎉 Congratulations!
@@ -57,7 +79,7 @@ https://t.me/+f7oWI21E_JgzMzQ1
     else:
         text = f"""👋 Welcome
 
-👉 10 लोगो को invite करो तब आपको CP, RP और Bro Sis Private Videos मिलेगा 🔗
+👉 10 लोगो को invite करो + channel join जरूरी
 
 🔗 Link:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
@@ -67,33 +89,94 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
     await update.message.reply_text(text, reply_markup=reply_markup)
 
-
+# 🔹 Button
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     user_id = str(query.from_user.id)
+    data = query.data
+
+    if data.startswith("checkjoin"):
+        joined = await is_joined(user_id, context)
+        if joined:
+            await query.edit_message_text("✅ Joined! अब invite करो")
+        else:
+            await query.edit_message_text("❌ अभी join नहीं किया")
+        return
+
     count = users.get(user_id, {}).get("referrals", 0)
 
     if count >= 10:
         msg = """🎉 Task Complete!
 
-🔓 अब videos यहाँ देखें:
+🔓 Videos यहाँ देखें:
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
         msg = f"""📊 Progress: {count}/10
 
-👉 10 लोगो को invite करो तब आपको CP, RP और Bro Sis Private Videos मिलेगा
+👉 10 लोगो को invite करो + channel join जरूरी
 """
 
     await query.edit_message_text(msg)
 
+# 🔹 Admin panel
+async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_user.id) not in ADMIN_IDS:
+        return
+
+    keyboard = [
+        [InlineKeyboardButton("📊 Stats", callback_data="stats")],
+        [InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text("👑 Admin Panel", reply_markup=reply_markup)
+
+# 🔹 Admin buttons
+async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+
+    if user_id not in ADMIN_IDS:
+        return
+
+    if query.data == "stats":
+        total = len(users)
+        await query.edit_message_text(f"👥 Total Users: {total}")
+
+    elif query.data == "broadcast":
+        broadcast_mode[user_id] = True
+        await query.edit_message_text("📢 Message भेजो (सबको जाएगा)")
+
+# 🔹 Broadcast message
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in broadcast_mode:
+        msg = update.message.text
+        sent = 0
+
+        for uid in users:
+            try:
+                await context.bot.send_message(chat_id=uid, text=msg)
+                sent += 1
+            except:
+                pass
+
+        broadcast_mode.pop(user_id)
+        await update.message.reply_text(f"✅ Broadcast sent to {sent} users")
 
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button))
+app.add_handler(CommandHandler("admin", admin))
+app.add_handler(CallbackQueryHandler(button, pattern="^(check|checkjoin)"))
+app.add_handler(CallbackQueryHandler(admin_buttons, pattern="^(stats|broadcast)"))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 print("Bot Running...")
 app.run_polling()
