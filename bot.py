@@ -1,84 +1,93 @@
+import json
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 
 TOKEN = os.getenv("TOKEN")
-CHANNEL = "@dark1544"
 
-users = {}
+DATA_FILE = "data.json"
+
+def load_data():
+    try:
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
+
+users = load_data()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    user_id = str(update.effective_user.id)
 
-    # Referral system
+    ref = None
     if context.args:
-        ref_id = int(context.args[0])
-        if ref_id != user_id:
-            users.setdefault(ref_id, {"ref": 0})
-            users[ref_id]["ref"] += 1
+        ref = context.args[0]
 
-    users.setdefault(user_id, {"ref": 0, "verified": False, "shared": False})
+    if user_id not in users:
+        users[user_id] = {"referrals": 0}
 
-    ref_link = f"https://t.me/{context.bot.username}?start={user_id}"
+        if ref and ref != user_id and ref in users:
+            users[ref]["referrals"] += 1
+
+    save_data(users)
+
+    count = users[user_id]["referrals"]
 
     keyboard = [
-        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/dark1544")],
-        [InlineKeyboardButton("✅ Verify Join", callback_data="verify")]
+        [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
-
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        f"👋 Welcome!\n\n"
-        f"👥 Referrals: {users[user_id]['ref']}\n"
-        f"🔗 Your Link:\n{ref_link}\n\n"
-        f"👉 Step 1: Channel join karo",
-        reply_markup=reply_markup
-    )
+    if count >= 10:
+        text = """🎉 Congratulations!
 
-async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
+✅ आपने 10 लोगों को invite कर दिया!
 
-    member = await context.bot.get_chat_member(CHANNEL, user_id)
+🔓 अब आपका access unlock हो गया है 👇
 
-    if member.status in ["member", "administrator", "creator"]:
-        users[user_id]["verified"] = True
-
-        keyboard = [
-            [InlineKeyboardButton("📤 Share to 5 Friends", url="https://t.me/share/url?url=https://t.me/dark1544")],
-            [InlineKeyboardButton("✅ Done Sharing", callback_data="share_done")]
-        ]
-
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await query.message.reply_text(
-            "✅ Channel join ho gaya!\n\n👉 Ab channel ko 5 logo ko share karo",
-            reply_markup=reply_markup
-        )
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
     else:
-        await query.message.reply_text("❌ Pehle channel join karo!")
+        text = f"""👋 Welcome
 
+👉 10 लोगों को invite करो
+
+🔗 Link:
+https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
+
+📊 Progress: {count}/10
+"""
+
+    await update.message.reply_text(text, reply_markup=reply_markup)
+
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
     await query.answer()
 
-async def share_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
+    user_id = str(query.from_user.id)
+    count = users.get(user_id, {}).get("referrals", 0)
 
-    if users[user_id]["verified"]:
-        users[user_id]["shared"] = True
-        await query.message.reply_text("🎉 Sab task complete! Ab aap videos dekh sakte ho 😎")
+    if count >= 10:
+        msg = """🎉 Task Complete!
+
+🔓 अब videos यहाँ देखें:
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
     else:
-        await query.message.reply_text("❌ Pehle join verify karo!")
+        msg = f"📊 Progress: {count}/10\n\nऔर invite करो!"
 
-    await query.answer()
+    await query.edit_message_text(msg)
+
 
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(verify, pattern="verify"))
-app.add_handler(CallbackQueryHandler(share_done, pattern="share_done"))
+app.add_handler(CallbackQueryHandler(button))
 
-print("🔥 Pro Bot chal raha hai...")
-
+print("Bot Running...")
 app.run_polling()
