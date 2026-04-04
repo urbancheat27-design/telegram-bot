@@ -57,11 +57,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if not joined:
-        await update.message.reply_text("⚠️ पहले channel join करो", reply_markup=reply_markup)
+        await update.message.reply_text(
+            "👉 पहले 10 लोगो को channel join कराओ",
+            reply_markup=reply_markup
+        )
         return
-
-    if ref and ref != user_id and ref in users:
-        users[ref]["referrals"] += 1
 
     save_data(users)
 
@@ -78,6 +78,8 @@ https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
         text = f"""👋 Welcome
+
+👉 10 लोगो को invite करो + channel join कराओ तब आपको CP, RP और Bro Sis सभी Private Videos मिलेगा
 
 👉 10 लोगो को invite करो + channel join जरूरी
 
@@ -98,11 +100,26 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data.startswith("checkjoin"):
+        parts = data.split("_")
+        ref = parts[1] if len(parts) > 1 else None
+
         joined = await is_joined(user_id, context)
-        if joined:
-            await query.edit_message_text("✅ Joined! अब invite करो")
-        else:
-            await query.edit_message_text("❌ अभी join नहीं किया")
+
+        if not joined:
+            await query.edit_message_text("❌ पहले channel join करो")
+            return
+
+        # ✅ referral count after join
+        if ref and ref != user_id and ref in users:
+            if "joined_users" not in users[ref]:
+                users[ref]["joined_users"] = []
+
+            if user_id not in users[ref]["joined_users"]:
+                users[ref]["referrals"] += 1
+                users[ref]["joined_users"].append(user_id)
+                save_data(users)
+
+        await query.edit_message_text("✅ Join verified! अब invite करो")
         return
 
     count = users.get(user_id, {}).get("referrals", 0)
@@ -152,7 +169,7 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         broadcast_mode[user_id] = True
         await query.edit_message_text("📢 Message भेजो (सबको जाएगा)")
 
-# 🔹 Broadcast message
+# 🔹 Broadcast
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
