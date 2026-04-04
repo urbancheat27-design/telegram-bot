@@ -6,6 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Callb
 TOKEN = os.getenv("TOKEN")
 
 ADMIN_IDS = ["5747624055", "1507609664"]
+
 DATA_FILE = "data.json"
 
 def load_data():
@@ -21,12 +22,11 @@ def save_data(data):
 
 users = load_data()
 
-# âœ… TWO CHANNELS
 CHANNELS = ["dark1544", "+lRKxuCwsiJ02N2Fl"]
 
 broadcast_mode = {}
 
-# ðŸ”¹ Check join for BOTH channels
+# 🔹 Check both channels
 async def is_joined(user_id, context):
     try:
         for ch in CHANNELS:
@@ -37,7 +37,7 @@ async def is_joined(user_id, context):
     except:
         return False
 
-# ðŸ”¹ Start
+# 🔹 Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     ref = context.args[0] if context.args else None
@@ -47,100 +47,131 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     joined = await is_joined(user_id, context)
 
-    invite_text = f"""ðŸ”¥ Free Private Videos à¤ªà¤¾à¤¨à¥‡ à¤•à¥‡ à¤²à¤¿à¤ ðŸ‘‡
+    # 🔥 AUTO REFERRAL
+    if joined and ref and ref != user_id and ref in users:
+        if user_id not in users[ref]["joined_users"]:
+            users[ref]["referrals"] += 1
+            users[ref]["joined_users"].append(user_id)
+            save_data(users)
 
-1ï¸âƒ£ Bot Start à¤•à¤°à¥‹:
+            # 🔥 AUTO UNLOCK
+            if users[ref]["referrals"] >= 10:
+                try:
+                    await context.bot.send_message(
+                        chat_id=ref,
+                        text="""🎉 Congratulations!
+
+🔓 आपने 10 लोगो को successfully join करा दिया!
+
+👉 Videos:
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
+                    )
+                except:
+                    pass
+
+    # 🔥 Invite message
+    invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
+
+👉 Bot Start:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
-2ï¸âƒ£ à¤‡à¤¨ à¤¦à¥‹à¤¨à¥‹à¤‚ channels à¤•à¥‹ join à¤•à¤°à¥‹:
+👉 दोनों channel join करो:
 https://t.me/dark1544
 https://t.me/+lRKxuCwsiJ02N2Fl
 """
 
     keyboard = [
-        [InlineKeyboardButton("ðŸ“¢ Join Channel 1", url="https://t.me/dark1544")],
-        [InlineKeyboardButton("ðŸ“¢ Join Channel 2", url="https://t.me/+lRKxuCwsiJ02N2Fl")],
-        [InlineKeyboardButton("ðŸ“¤ Invite Friends", url=f"https://t.me/share/url?text={invite_text}")],
-        [InlineKeyboardButton("ðŸ“Š Check Progress", callback_data="check")]
+        [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/dark1544")],
+        [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+lRKxuCwsiJ02N2Fl")],
+        [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?text={invite_text}")],
+        [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
+
+    # ❌ Join नहीं किया
+    if not joined:
+        await update.message.reply_text(
+            "👉 पहले दोनों channel join करो",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
 
     count = users[user_id]["referrals"]
 
-    if count >= 10 and joined:
-        text = f"""ðŸŽ‰ Congratulations!
+    # ✅ EXACT YOUR MESSAGE
+    if count >= 10:
+        text = """🎉 Congratulations!
 
-ðŸ”“ à¤†à¤ªà¤¨à¥‡ 10 à¤²à¥‹à¤—à¥‹ à¤•à¥‹ invite + à¤¦à¥‹à¤¨à¥‹à¤‚ channels join à¤•à¤°à¤µà¤¾ à¤¦à¤¿à¤!
-
-ðŸ‘‰ Videos à¤¯à¤¹à¤¾à¤ à¤¦à¥‡à¤–à¥‡à¤‚:
+🔓 Videos:
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
-        text = f"""ðŸ‘‹ Welcome
+        text = f"""👋 Welcome
 
-ðŸ‘‰ 10 à¤²à¥‹à¤—à¥‹ à¤•à¥‹ invite à¤•à¤°à¥‹ + à¤¦à¥‹à¤¨à¥‹à¤‚ channels join à¤•à¤°à¤¾à¤“ à¤¤à¤¬ à¤†à¤ªà¤•à¥‹ CP, RP à¤”à¤° Bro Sis à¤¸à¤­à¥€ Private Videos à¤®à¤¿à¤²à¥‡à¤—à¤¾
+👉 10 लोगो को invite करो + channel join कराओ तब आपको CP, RP और Bro Sis सभी Private Videos मिलेगा
 
-ðŸ‘‰ 10 à¤²à¥‹à¤—à¥‹ à¤•à¥‹ invite à¤•à¤°à¥‹ + channel join à¤œà¤°à¥‚à¤°à¥€
+👉 10 लोगो को invite करो + channel join जरूरी
 
-ðŸ”— Link:
+🔗 Link:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
-ðŸ“Š Progress: {count}/10
+📊 Progress: {count}/10
 """
 
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ðŸ”¹ Button
+# 🔹 Progress button
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     user_id = str(query.from_user.id)
-    data = query.data
-
-    # Auto unlock check
-    joined = await is_joined(user_id, context)
     count = users.get(user_id, {}).get("referrals", 0)
 
-    if data == "check":
-        if count >= 10 and joined:
-            msg = f"""ðŸŽ‰ Task Complete!
+    if count >= 10:
+        msg = """🎉 Task Complete!
 
-ðŸ”“ Videos:
+🔓 Videos:
 https://t.me/+f7oWI21E_JgzMzQ1
 """
-        else:
-            msg = f"ðŸ“Š Progress: {count}/10\nðŸ‘‰ 10 à¤²à¥‹à¤—à¥‹ à¤•à¥‹ invite + à¤¦à¥‹à¤¨à¥‹à¤‚ channels join à¤•à¤°à¤¾à¤“"
-        await query.edit_message_text(msg)
+    else:
+        msg = f"📊 Progress: {count}/10"
 
-# ðŸ”¹ Admin
+    await query.edit_message_text(msg)
+
+# 🔹 Admin
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_user.id) not in ADMIN_IDS:
         return
 
     keyboard = [
-        [InlineKeyboardButton("ðŸ“Š Stats", callback_data="stats")],
-        [InlineKeyboardButton("ðŸ“¢ Broadcast", callback_data="broadcast")]
+        [InlineKeyboardButton("📊 Stats", callback_data="stats")],
+        [InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")]
     ]
-    await update.message.reply_text("ðŸ‘‘ Admin Panel", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ðŸ”¹ Admin buttons
+    await update.message.reply_text("👑 Admin Panel", reply_markup=InlineKeyboardMarkup(keyboard))
+
+# 🔹 Admin buttons
 async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     user_id = str(query.from_user.id)
 
     if user_id not in ADMIN_IDS:
         return
 
     if query.data == "stats":
-        await query.edit_message_text(f"ðŸ‘¥ Total Users: {len(users)}")
+        await query.edit_message_text(f"👥 Total Users: {len(users)}")
+
     elif query.data == "broadcast":
         broadcast_mode[user_id] = True
-        await query.edit_message_text("ðŸ“¢ Message à¤­à¥‡à¤œà¥‹")
+        await query.edit_message_text("📢 Message भेजो")
 
-# ðŸ”¹ Broadcast
+# 🔹 Broadcast
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in broadcast_mode:
         msg = update.message.text
         for uid in users:
@@ -148,8 +179,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(chat_id=uid, text=msg)
             except:
                 pass
+
         broadcast_mode.pop(user_id)
-        await update.message.reply_text("âœ… Broadcast done")
+        await update.message.reply_text("✅ Broadcast done")
 
 app = ApplicationBuilder().token(TOKEN).build()
 
