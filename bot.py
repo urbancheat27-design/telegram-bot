@@ -37,7 +37,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     count = users[user_id]["referrals"]
 
+    # 🔘 Buttons
     keyboard = [
+        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/dark1544")],
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -54,7 +56,7 @@ https://t.me/+f7oWI21E_JgzMzQ1
     else:
         text = f"""👋 Welcome
 
-👉 10 लोगों को invite करो
+👉 10 लोगो को invite करो तब आपको CP, RP और Bro Sis Private Videos मिलेगा 🔗
 
 🔗 Link:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
@@ -79,7 +81,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
-        msg = f"📊 Progress: {count}/10\n\nऔर invite करो!"
+        msg = f"""📊 Progress: {count}/10
+
+👉 10 लोगो को invite करो तब आपको CP, RP और Bro Sis Private Videos मिलेगा
+"""
 
     await query.edit_message_text(msg)
 
