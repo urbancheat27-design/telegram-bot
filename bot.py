@@ -26,7 +26,7 @@ CHANNELS = ["dark1544", "+lRKxuCwsiJ02N2Fl"]
 
 broadcast_mode = {}
 
-# 🔹 Check join दोनों channel
+# 🔹 Check join
 async def is_joined(user_id, context):
     try:
         for ch in CHANNELS:
@@ -73,7 +73,7 @@ https://t.me/+f7oWI21E_JgzMzQ1
                 except:
                     pass
 
-    # 🔥 Invite message
+    # 🔥 Invite text
     invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
 
 1️⃣ Bot Start:
@@ -102,6 +102,7 @@ https://t.me/+lRKxuCwsiJ02N2Fl
 
     count = users[user_id]["referrals"]
 
+    # ✅ SAME OLD MESSAGE (आपका वाला)
     if count >= 10:
         text = """🎉 Congratulations!
 
@@ -111,7 +112,9 @@ https://t.me/+f7oWI21E_JgzMzQ1
     else:
         text = f"""👋 Welcome
 
-👉 10 लोगो को invite करो + दोनों channel join कराओ
+👉 10 लोगो को invite करो + channel join कराओ तब आपको CP, RP और Bro Sis सभी Private Videos मिलेगा
+
+👉 10 लोगो को invite करो + channel join जरूरी
 
 🔗 Link:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
@@ -121,7 +124,7 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# 🔹 Progress button
+# 🔹 Progress
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -136,7 +139,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
-        msg = f"📊 Progress: {count}/10"
+        msg = f"""📊 Progress: {count}/10"""
 
     await query.edit_message_text(msg)
 
