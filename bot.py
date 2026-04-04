@@ -22,12 +22,11 @@ def save_data(data):
 
 users = load_data()
 
-# ✅ TWO CHANNELS
 CHANNELS = ["dark1544", "+lRKxuCwsiJ02N2Fl"]
 
 broadcast_mode = {}
 
-# 🔹 Check join (BOTH channels)
+# 🔹 Check join दोनों channel
 async def is_joined(user_id, context):
     try:
         for ch in CHANNELS:
@@ -48,30 +47,53 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     joined = await is_joined(user_id, context)
 
-    # 🔥 Invite message with BOTH links
+    # 🔥 AUTO REFERRAL
+    if joined and ref and ref != user_id and ref in users:
+        if "joined_users" not in users[ref]:
+            users[ref]["joined_users"] = []
+
+        if user_id not in users[ref]["joined_users"]:
+            users[ref]["referrals"] += 1
+            users[ref]["joined_users"].append(user_id)
+            save_data(users)
+
+            # 🔥 AUTO UNLOCK
+            if users[ref]["referrals"] >= 10:
+                try:
+                    await context.bot.send_message(
+                        chat_id=ref,
+                        text="""🎉 Congratulations!
+
+🔓 आपने 10 लोगो को successfully join करा दिया!
+
+👉 Videos:
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
+                    )
+                except:
+                    pass
+
+    # 🔥 Invite message
     invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
 
-1️⃣ Bot Start करो:
+1️⃣ Bot Start:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
-2️⃣ इन दोनों channels को join करो:
+2️⃣ दोनों channel join करो:
 https://t.me/dark1544
 https://t.me/+lRKxuCwsiJ02N2Fl
-
-👉 Join करके "Check Join" दबाओ
 """
 
     keyboard = [
         [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/dark1544")],
         [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+lRKxuCwsiJ02N2Fl")],
         [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?text={invite_text}")],
-        [InlineKeyboardButton("✅ Check Join", callback_data=f"checkjoin_{ref}")],
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
 
     if not joined:
         await update.message.reply_text(
-            "👉 पहले 10 लोगो को दोनों channel join कराओ",
+            "👉 पहले दोनों channel join करो",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -83,17 +105,15 @@ https://t.me/+lRKxuCwsiJ02N2Fl
     if count >= 10:
         text = """🎉 Congratulations!
 
-🔓 आपने 10 लोगो को successfully join करा दिया!
-
-👉 Videos यहाँ देखें:
+🔓 Videos:
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
         text = f"""👋 Welcome
 
-👉 10 लोगो को invite करो + दोनों channel join कराओ तब आपको Private Videos मिलेगा
+👉 10 लोगो को invite करो + दोनों channel join कराओ
 
-🔗 आपका लिंक:
+🔗 Link:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
 📊 Progress: {count}/10
@@ -101,52 +121,12 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
     await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# 🔹 Button
+# 🔹 Progress button
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     user_id = str(query.from_user.id)
-    data = query.data
-
-    if data.startswith("checkjoin"):
-        parts = data.split("_")
-        ref = parts[1] if len(parts) > 1 else None
-
-        joined = await is_joined(user_id, context)
-
-        if not joined:
-            await query.edit_message_text("❌ दोनों channel join करो")
-            return
-
-        if ref and ref != user_id and ref in users:
-            if "joined_users" not in users[ref]:
-                users[ref]["joined_users"] = []
-
-            if user_id not in users[ref]["joined_users"]:
-                users[ref]["referrals"] += 1
-                users[ref]["joined_users"].append(user_id)
-                save_data(users)
-
-                # 🔥 AUTO UNLOCK
-                if users[ref]["referrals"] >= 10:
-                    try:
-                        await context.bot.send_message(
-                            chat_id=ref,
-                            text="""🎉 Congratulations!
-
-🔓 10 लोग join करा दिए!
-
-👉 Videos:
-https://t.me/+f7oWI21E_JgzMzQ1
-"""
-                        )
-                    except:
-                        pass
-
-        await query.edit_message_text("✅ Join verified! अब invite करो")
-        return
-
     count = users.get(user_id, {}).get("referrals", 0)
 
     if count >= 10:
