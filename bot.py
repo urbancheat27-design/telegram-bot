@@ -40,6 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🔘 Buttons
     keyboard = [
         [InlineKeyboardButton("📢 Join Channel", url="https://t.me/dark1544")],
+        [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?url=https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}")],
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
