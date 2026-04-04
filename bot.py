@@ -4,6 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
 TOKEN = os.getenv("TOKEN")
+
 ADMIN_IDS = ["5747624055", "1507609664"]
 DATA_FILE = "data.json"
 
@@ -46,7 +47,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     joined = await is_joined(user_id, context)
 
-    # 🔥 Invite message with BOTH channel links
+    # Invite message for friends
     invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
 
 1️⃣ Bot Start करो:
@@ -93,11 +94,9 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     user_id = str(query.from_user.id)
     data = query.data
 
-    # Auto unlock check
     joined = await is_joined(user_id, context)
     count = users.get(user_id, {}).get("referrals", 0)
 
@@ -114,12 +113,14 @@ https://t.me/+f7oWI21E_JgzMzQ1
 
 # 🔹 Admin
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if str(update.effective_user.id) not in ADMIN_IDS:
+    user_id = str(update.effective_user.id)
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ आप admin नहीं हैं")
         return
 
     keyboard = [
-        [InlineKeyboardButton("📊 Stats", callback_data="stats")],
-        [InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")]
+        [InlineKeyboardButton("📊 Stats", callback_data="admin_stats")],
+        [InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")]
     ]
     await update.message.reply_text("👑 Admin Panel", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -128,15 +129,15 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = str(query.from_user.id)
-
     if user_id not in ADMIN_IDS:
         return
 
-    if query.data == "stats":
+    data = query.data
+    if data == "admin_stats":
         await query.edit_message_text(f"👥 Total Users: {len(users)}")
-    elif query.data == "broadcast":
+    elif data == "admin_broadcast":
         broadcast_mode[user_id] = True
-        await query.edit_message_text("📢 Message भेजो")
+        await query.edit_message_text("📢 अब अपना संदेश भेजें, सभी users को broadcast होगा")
 
 # 🔹 Broadcast
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -151,12 +152,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         broadcast_mode.pop(user_id)
         await update.message.reply_text("✅ Broadcast done")
 
+# ───── App Handlers ─────
 app = ApplicationBuilder().token(TOKEN).build()
-
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("admin", admin))
-app.add_handler(CallbackQueryHandler(button))
-app.add_handler(CallbackQueryHandler(admin_buttons))
+app.add_handler(CallbackQueryHandler(button, pattern="^check$"))
+app.add_handler(CallbackQueryHandler(admin_buttons, pattern="^admin_"))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 print("Bot Running...")
