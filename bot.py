@@ -39,9 +39,7 @@ async def is_joined(user_id, context):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    ref = None
-    if context.args:
-        ref = context.args[0]
+    ref = context.args[0] if context.args else None
 
     if user_id not in users:
         users[user_id] = {"referrals": 0}
@@ -54,12 +52,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("✅ Check Join", callback_data=f"checkjoin_{ref}")],
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
     if not joined:
         await update.message.reply_text(
             "👉 पहले 10 लोगो को channel join कराओ",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
@@ -70,10 +67,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if count >= 10:
         text = """🎉 Congratulations!
 
-✅ आपने 10 लोगों को invite कर दिया!
+🔓 आपने 10 लोगो को successfully join करा दिया!
 
-🔓 अब आपका access unlock हो गया है 👇
-
+👉 Videos यहाँ देखें:
 https://t.me/+f7oWI21E_JgzMzQ1
 """
     else:
@@ -89,7 +85,7 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 📊 Progress: {count}/10
 """
 
-    await update.message.reply_text(text, reply_markup=reply_markup)
+    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 # 🔹 Button
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -109,7 +105,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("❌ पहले channel join करो")
             return
 
-        # ✅ referral count after join
         if ref and ref != user_id and ref in users:
             if "joined_users" not in users[ref]:
                 users[ref]["joined_users"] = []
@@ -118,6 +113,24 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 users[ref]["referrals"] += 1
                 users[ref]["joined_users"].append(user_id)
                 save_data(users)
+
+                # 🔥 AUTO UNLOCK
+                count = users[ref]["referrals"]
+
+                if count >= 10:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=ref,
+                            text="""🎉 Congratulations!
+
+🔓 आपने 10 लोगो को successfully join करा दिया!
+
+👉 Videos यहाँ देखें:
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
+                        )
+                    except:
+                        pass
 
         await query.edit_message_text("✅ Join verified! अब invite करो")
         return
@@ -138,7 +151,7 @@ https://t.me/+f7oWI21E_JgzMzQ1
 
     await query.edit_message_text(msg)
 
-# 🔹 Admin panel
+# 🔹 Admin
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_user.id) not in ADMIN_IDS:
         return
@@ -147,9 +160,8 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📊 Stats", callback_data="stats")],
         [InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text("👑 Admin Panel", reply_markup=reply_markup)
+    await update.message.reply_text("👑 Admin Panel", reply_markup=InlineKeyboardMarkup(keyboard))
 
 # 🔹 Admin buttons
 async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -162,8 +174,7 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data == "stats":
-        total = len(users)
-        await query.edit_message_text(f"👥 Total Users: {total}")
+        await query.edit_message_text(f"👥 Total Users: {len(users)}")
 
     elif query.data == "broadcast":
         broadcast_mode[user_id] = True
