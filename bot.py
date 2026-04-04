@@ -23,10 +23,9 @@ users = load_data()
 
 # ✅ TWO CHANNELS
 CHANNELS = ["dark1544", "+lRKxuCwsiJ02N2Fl"]
-
 broadcast_mode = {}
 
-# 🔹 Check join for BOTH channels
+# 🔹 Check join (BOTH channels)
 async def is_joined(user_id, context):
     try:
         for ch in CHANNELS:
@@ -47,6 +46,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     joined = await is_joined(user_id, context)
 
+    # 🔥 Invite message with BOTH links (clickable)
     invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
 
 1️⃣ Bot Start करो:
@@ -55,21 +55,33 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 2️⃣ इन दोनों channels को join करो:
 https://t.me/dark1544
 https://t.me/+lRKxuCwsiJ02N2Fl
+
+👉 Join करके "Check Join" दबाओ
 """
 
     keyboard = [
         [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/dark1544")],
         [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+lRKxuCwsiJ02N2Fl")],
         [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?text={invite_text}")],
+        [InlineKeyboardButton("✅ Check Join", callback_data=f"checkjoin_{ref}")],
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
 
+    if not joined:
+        await update.message.reply_text(
+            "👉 पहले 10 लोगो को दोनों channel join कराओ",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    save_data(users)
+
     count = users[user_id]["referrals"]
 
-    if count >= 10 and joined:
+    if count >= 10:
         text = f"""🎉 Congratulations!
 
-🔓 आपने 10 लोगो को invite + दोनों channels join करवा दिए!
+🔓 आपने 10 लोगो को successfully join करवा दिया!
 
 👉 Videos यहाँ देखें:
 https://t.me/+f7oWI21E_JgzMzQ1
@@ -77,11 +89,11 @@ https://t.me/+f7oWI21E_JgzMzQ1
     else:
         text = f"""👋 Welcome
 
-👉 10 लोगो को invite करो + दोनों channels join कराओ तब आपको CP, RP और Bro Sis सभी Private Videos मिलेगा
+👉 10 लोगो को invite करो + दोनों channel join कराओ तब आपको CP, RP और Bro Sis सभी Private Videos मिलेगा
 
 👉 10 लोगो को invite करो + channel join जरूरी
 
-🔗 Link:
+🔗 आपका लिंक:
 https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 
 📊 Progress: {count}/10
@@ -97,20 +109,54 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(query.from_user.id)
     data = query.data
 
-    # Auto unlock check
-    joined = await is_joined(user_id, context)
+    if data.startswith("checkjoin"):
+        parts = data.split("_")
+        ref = parts[1] if len(parts) > 1 else None
+
+        joined = await is_joined(user_id, context)
+
+        if not joined:
+            await query.edit_message_text("❌ दोनों channel join करो")
+            return
+
+        # Referral count after join
+        if ref and ref != user_id and ref in users:
+            if user_id not in users[ref]["joined_users"]:
+                users[ref]["referrals"] += 1
+                users[ref]["joined_users"].append(user_id)
+                save_data(users)
+
+                # 🔥 AUTO UNLOCK
+                if users[ref]["referrals"] >= 10:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=ref,
+                            text=f"""🎉 Congratulations!
+
+🔓 10 लोग join करवा दिए!
+
+👉 Videos:
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
+                        )
+                    except:
+                        pass
+
+        await query.edit_message_text("✅ Join verified! अब invite करो")
+        return
+
     count = users.get(user_id, {}).get("referrals", 0)
 
-    if data == "check":
-        if count >= 10 and joined:
-            msg = f"""🎉 Task Complete!
+    if count >= 10:
+        msg = """🎉 Task Complete!
 
 🔓 Videos:
 https://t.me/+f7oWI21E_JgzMzQ1
 """
-        else:
-            msg = f"📊 Progress: {count}/10\n👉 10 लोगो को invite + दोनों channels join कराओ"
-        await query.edit_message_text(msg)
+    else:
+        msg = f"📊 Progress: {count}/10"
+
+    await query.edit_message_text(msg)
 
 # 🔹 Admin
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -121,12 +167,14 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📊 Stats", callback_data="stats")],
         [InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")]
     ]
+
     await update.message.reply_text("👑 Admin Panel", reply_markup=InlineKeyboardMarkup(keyboard))
 
 # 🔹 Admin buttons
 async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     user_id = str(query.from_user.id)
 
     if user_id not in ADMIN_IDS:
@@ -134,6 +182,7 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "stats":
         await query.edit_message_text(f"👥 Total Users: {len(users)}")
+
     elif query.data == "broadcast":
         broadcast_mode[user_id] = True
         await query.edit_message_text("📢 Message भेजो")
@@ -141,6 +190,7 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # 🔹 Broadcast
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+
     if user_id in broadcast_mode:
         msg = update.message.text
         for uid in users:
@@ -148,9 +198,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(chat_id=uid, text=msg)
             except:
                 pass
+
         broadcast_mode.pop(user_id)
         await update.message.reply_text("✅ Broadcast done")
 
+# 🔹 App init
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
