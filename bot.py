@@ -1,10 +1,9 @@
 import json
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 
 TOKEN = os.getenv("TOKEN")
-
 ADMIN_IDS = ["5747624055", "1507609664"]
 DATA_FILE = "data.json"
 
@@ -21,8 +20,9 @@ def save_data(data):
 
 users = load_data()
 
-# ✅ Channels
+# ✅ TWO CHANNELS
 CHANNELS = ["dark1544", "+lRKxuCwsiJ02N2Fl"]
+
 broadcast_mode = {}
 
 # 🔹 Check join for BOTH channels
@@ -39,19 +39,43 @@ async def is_joined(user_id, context):
 # 🔹 Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
+    ref = context.args[0] if context.args else None
+
     if user_id not in users:
         users[user_id] = {"referrals": 0, "joined_users": []}
 
-    count = users[user_id]["referrals"]
+    joined = await is_joined(user_id, context)
+
+    # 🔥 Invite message with BOTH channel links
+    invite_text = f"""🔥 Free Private Videos पाने के लिए 👇
+
+1️⃣ Bot Start करो:
+https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
+
+2️⃣ इन दोनों channels को join करो:
+https://t.me/dark1544
+https://t.me/+lRKxuCwsiJ02N2Fl
+"""
 
     keyboard = [
         [InlineKeyboardButton("📢 Join Channel 1", url="https://t.me/dark1544")],
         [InlineKeyboardButton("📢 Join Channel 2", url="https://t.me/+lRKxuCwsiJ02N2Fl")],
-        [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?text=Join+Bot:+https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}")],
+        [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?text={invite_text}")],
         [InlineKeyboardButton("📊 Check Progress", callback_data="check")]
     ]
 
-    text = f"""👋 Welcome
+    count = users[user_id]["referrals"]
+
+    if count >= 10 and joined:
+        text = f"""🎉 Congratulations!
+
+🔓 आपने 10 लोगो को invite + दोनों channels join करवा दिए!
+
+👉 Videos यहाँ देखें:
+https://t.me/+f7oWI21E_JgzMzQ1
+"""
+    else:
+        text = f"""👋 Welcome
 
 👉 10 लोगो को invite करो + दोनों channels join कराओ तब आपको CP, RP और Bro Sis सभी Private Videos मिलेगा
 
@@ -69,11 +93,15 @@ https://t.me/CP_RP_BroSis_All_Videobot?start={user_id}
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    user_id = str(query.from_user.id)
-    count = users.get(user_id, {}).get("referrals", 0)
-    joined = await is_joined(user_id, context)
 
-    if query.data == "check":
+    user_id = str(query.from_user.id)
+    data = query.data
+
+    # Auto unlock check
+    joined = await is_joined(user_id, context)
+    count = users.get(user_id, {}).get("referrals", 0)
+
+    if data == "check":
         if count >= 10 and joined:
             msg = f"""🎉 Task Complete!
 
@@ -88,6 +116,7 @@ https://t.me/+f7oWI21E_JgzMzQ1
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_user.id) not in ADMIN_IDS:
         return
+
     keyboard = [
         [InlineKeyboardButton("📊 Stats", callback_data="stats")],
         [InlineKeyboardButton("📢 Broadcast", callback_data="broadcast")]
@@ -99,8 +128,10 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = str(query.from_user.id)
+
     if user_id not in ADMIN_IDS:
         return
+
     if query.data == "stats":
         await query.edit_message_text(f"👥 Total Users: {len(users)}")
     elif query.data == "broadcast":
@@ -121,6 +152,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ Broadcast done")
 
 app = ApplicationBuilder().token(TOKEN).build()
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("admin", admin))
 app.add_handler(CallbackQueryHandler(button))
